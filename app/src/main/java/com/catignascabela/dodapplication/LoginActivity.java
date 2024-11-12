@@ -5,9 +5,9 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.View;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -19,13 +19,15 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.Query;
+
+import java.util.regex.Pattern;
 
 public class LoginActivity extends AppCompatActivity {
 
     private ActivityLoginBinding binding;
     private FirebaseAuth mAuth;
     private FirebaseFirestore firestore;
+    private ProgressBar progressBar; // Loading indicator
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,6 +38,7 @@ public class LoginActivity extends AppCompatActivity {
         // Initialize Firebase Auth and Firestore
         mAuth = FirebaseAuth.getInstance();
         firestore = FirebaseFirestore.getInstance();
+        progressBar = binding.progressBar; // Assuming you have a ProgressBar in your layout
 
         // Set up TextWatchers to handle text input
         setupTextWatchers();
@@ -75,14 +78,30 @@ public class LoginActivity extends AppCompatActivity {
         if (idOrUsername.isEmpty() || password.isEmpty()) {
             binding.useridUnderline.setVisibility(idOrUsername.isEmpty() ? View.VISIBLE : View.GONE);
             binding.passwordUnderline.setVisibility(password.isEmpty() ? View.VISIBLE : View.GONE);
-            Toast.makeText(LoginActivity.this, "Empty Login", Toast.LENGTH_SHORT).show();
+            Toast.makeText(LoginActivity.this, "Please fill in all fields", Toast.LENGTH_SHORT).show();
+        } else if (!isValidEmail(idOrUsername) && !isValidStudentId(idOrUsername)) {
+            Toast.makeText(LoginActivity.this, "Invalid ID format", Toast.LENGTH_SHORT).show();
         } else {
+            // Show progress bar and disable the login button
+            progressBar.setVisibility(View.VISIBLE);
+            binding.button.setEnabled(false);
             loginUser(idOrUsername, password);
         }
     }
 
+    private boolean isValidEmail(String email) {
+        // Simple email validation regex
+        String emailPattern = "[a-zA-Z0-9._-]+@[a-z]+\\.+[a-z]+";
+        return Pattern.matches(emailPattern, email);
+    }
+
+    private boolean isValidStudentId(String studentId) {
+        // Implement your own student ID validation logic if necessary
+        return !studentId.isEmpty(); // Example: just check if it's not empty
+    }
+
     private void loginUser(String idOrUsername, String password) {
-        if (idOrUsername.contains("@")) {
+        if (isValidEmail(idOrUsername)) {
             // If input is an email, proceed with Firebase Auth directly
             authenticateWithEmail(idOrUsername, password);
         } else {
@@ -102,11 +121,14 @@ public class LoginActivity extends AppCompatActivity {
                         String email = studentDoc.getString("email");
                         if (email != null) {
                             authenticateWithEmail(email, password);
-                            return; // Exit after finding the first matching student
+                        } else {
+                            // If not found in students, check teachers by username
+                            lookupEmailFromTeacherUsername(idOrUsername, password);
                         }
+                    } else {
+                        // If not found in students, check teachers by username
+                        lookupEmailFromTeacherUsername(idOrUsername, password);
                     }
-                    // If not found in students, check teachers by username
-                    lookupEmailFromTeacherUsername(idOrUsername, password);
                 });
     }
 
@@ -120,17 +142,21 @@ public class LoginActivity extends AppCompatActivity {
                         String email = teacherDoc.getString("email");
                         if (email != null) {
                             authenticateWithEmail(email, password);
-                            return; // Exit after finding the first matching teacher
+                        } else {
+                            Toast.makeText(LoginActivity.this, "Invalid ID or username", Toast.LENGTH_SHORT).show();
+                            resetLoginUI();
                         }
+                    } else {
+                        Toast.makeText(LoginActivity.this, "Invalid ID or username", Toast.LENGTH_SHORT).show();
+                        resetLoginUI();
                     }
-                    // If no matching email found, show invalid ID message
-                    Toast.makeText(LoginActivity.this, "Invalid ID or username", Toast.LENGTH_SHORT).show();
                 });
     }
 
     private void authenticateWithEmail(String email, String password) {
         mAuth.signInWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, task -> {
+                    resetLoginUI(); // Reset UI regardless of result
                     if (task.isSuccessful()) {
                         FirebaseUser user = mAuth.getCurrentUser();
                         checkUserRoleAndNavigate(user);
@@ -140,14 +166,17 @@ public class LoginActivity extends AppCompatActivity {
                 });
     }
 
+    private void resetLoginUI() {
+        progressBar.setVisibility(View.GONE); // Hide loading indicator
+        binding.button.setEnabled(true); // Re-enable the login button
+    }
+
     private void checkUserRoleAndNavigate(FirebaseUser user) {
-        // Check in the teachers collection first
         firestore.collection("teachers").document(user.getUid()).get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
                         DocumentSnapshot teacherDoc = task.getResult();
                         if (teacherDoc.exists() && "teacher".equals(teacherDoc.getString("role"))) {
-                            // Navigate to HomepageActivity with isTeacher flag
                             navigateToHomepage(true);
                         } else {
                             // Otherwise, check in the students collection
@@ -156,7 +185,6 @@ public class LoginActivity extends AppCompatActivity {
                                         if (task2.isSuccessful()) {
                                             DocumentSnapshot studentDoc = task2.getResult();
                                             if (studentDoc.exists() && "student".equals(studentDoc.getString("role"))) {
-                                                // Navigate to HomepageActivity with isTeacher flag
                                                 navigateToHomepage(false);
                                             } else {
                                                 Toast.makeText(LoginActivity.this, "User role not found", Toast.LENGTH_SHORT).show();
@@ -174,22 +202,18 @@ public class LoginActivity extends AppCompatActivity {
 
     private void navigateToHomepage(boolean isTeacher) {
         Intent intent = new Intent(LoginActivity.this, HomepageActivity.class);
-        intent.putExtra("isTeacher", isTeacher); // Pass the user role as an extra
+        intent.putExtra("isTeacher", isTeacher);
         startActivity(intent);
         finish(); // Close LoginActivity
     }
 
     private void showRegistrationDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-
-        // Inflate the dialog layout using ViewBinding
         DialogRegistrationChoiceBinding dialogBinding = DialogRegistrationChoiceBinding.inflate(getLayoutInflater());
         builder.setView(dialogBinding.getRoot());
 
-        // Create the dialog
         AlertDialog dialog = builder.create();
 
-        // Set button click listeners
         dialogBinding.radioStudent.setOnClickListener(v -> {
             startActivity(new Intent(LoginActivity.this, StudentRegistrationActivity.class));
             dialog.dismiss(); // Close dialog after selection
@@ -202,7 +226,6 @@ public class LoginActivity extends AppCompatActivity {
 
         dialogBinding.buttonCancel.setOnClickListener(v -> dialog.dismiss()); // Close dialog on cancel
 
-        // Show the dialog
         dialog.show();
     }
 }
