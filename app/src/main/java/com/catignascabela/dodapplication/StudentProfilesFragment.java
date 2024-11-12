@@ -7,14 +7,17 @@ import androidx.fragment.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.Spinner;
 import android.widget.Toast;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
+
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,43 +26,100 @@ public class StudentProfilesFragment extends Fragment implements StudentAdapter.
     private RecyclerView recyclerView;
     private StudentAdapter studentAdapter;
     private List<Student> studentList;
+    private List<Student> filteredList;
+    private String currentFilter = "All"; // Default filter
+    private FirebaseFirestore db;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_student_profiles, container, false);
+
+        // Initialize Firestore
+        db = FirebaseFirestore.getInstance();
+
+        // Setup RecyclerView
         recyclerView = view.findViewById(R.id.student_recycler_view); // Ensure the ID matches your layout
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
         studentList = new ArrayList<>();
-        studentAdapter = new StudentAdapter(studentList, this); // Pass the click listener
+        filteredList = new ArrayList<>();
+        studentAdapter = new StudentAdapter(filteredList, this); // Use filtered list
         recyclerView.setAdapter(studentAdapter);
 
+        // Set up department filter
+        setupDepartmentFilter(view);
         loadStudents();
+
         return view;
     }
 
-    private void loadStudents() {
-        DatabaseReference studentsRef = FirebaseDatabase.getInstance().getReference("students");
-        studentsRef.addListenerForSingleValueEvent(new ValueEventListener() {
+    private void setupDepartmentFilter(View view) {
+        // Setting up the spinner to filter by department (BSCS, BSIT, or All)
+        Spinner departmentSpinner = view.findViewById(R.id.department_spinner); // Assume you added a Spinner in your layout
+        List<String> departments = new ArrayList<>();
+        departments.add("All");
+        departments.add("BSCS");
+        departments.add("BSIT");
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_spinner_item, departments);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        departmentSpinner.setAdapter(adapter);
+
+        departmentSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                studentList.clear();
-                for (DataSnapshot studentSnapshot : snapshot.getChildren()) {
-                    Student student = studentSnapshot.getValue(Student.class);
-                    if (student != null) {
-                        studentList.add(student);
-                    }
-                }
-                studentAdapter.notifyDataSetChanged();
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                currentFilter = departments.get(position);
+                filterStudentsByDepartment();
             }
 
             @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-                Toast.makeText(getContext(), "Failed to load students.", Toast.LENGTH_SHORT).show();
+            public void onNothingSelected(AdapterView<?> parent) {
+                // Do nothing
             }
         });
+    }
+
+    private void loadStudents() {
+        // Reference to the students collection in Firestore
+        db.collection("students") // Change this to your Firestore collection name
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        QuerySnapshot snapshot = task.getResult();
+                        if (snapshot != null) {
+                            studentList.clear();
+                            for (QueryDocumentSnapshot document : snapshot) {
+                                // Create Student object from Firestore document
+                                Student student = document.toObject(Student.class);
+                                if (student != null) {
+                                    studentList.add(student);
+                                }
+                            }
+                            filterStudentsByDepartment(); // Filter students after loading
+                        }
+                    } else {
+                        Toast.makeText(getContext(), "Failed to load students.", Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    private void filterStudentsByDepartment() {
+        filteredList.clear();
+
+        if ("All".equals(currentFilter)) {
+            filteredList.addAll(studentList);
+        } else {
+            for (Student student : studentList) {
+                // Filter by course or department
+                if (student.getCourse() != null && student.getCourse().equals(currentFilter)) {
+                    filteredList.add(student);
+                }
+            }
+        }
+
+        studentAdapter.notifyDataSetChanged();
     }
 
     @Override
