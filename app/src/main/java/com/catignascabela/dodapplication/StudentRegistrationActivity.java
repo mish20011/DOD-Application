@@ -15,15 +15,14 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.catignascabela.dodapplication.databinding.ActivityStudentRegistrationBinding;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 public class StudentRegistrationActivity extends AppCompatActivity {
 
     private ActivityStudentRegistrationBinding binding;
     private Bitmap profileImageBitmap;
     private FirebaseAuth mAuth;
-    private DatabaseReference databaseReference;
+    private FirebaseFirestore firestore;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,10 +30,9 @@ public class StudentRegistrationActivity extends AppCompatActivity {
         binding = ActivityStudentRegistrationBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        // Initialize Firebase Authentication
+        // Initialize Firebase Authentication and Firestore
         mAuth = FirebaseAuth.getInstance();
-        // Initialize Database Reference to "students"
-        databaseReference = FirebaseDatabase.getInstance().getReference("students");
+        firestore = FirebaseFirestore.getInstance();
 
         // Set the onClick listener for the register button
         binding.registerButton.setOnClickListener(v -> registerStudent());
@@ -61,44 +59,42 @@ public class StudentRegistrationActivity extends AppCompatActivity {
             });
 
     private void registerStudent() {
+        String studentId = binding.registerStudentId.getText().toString().trim();
+        String firstName = binding.registerFirstName.getText().toString().trim();
+        String surname = binding.registerSurname.getText().toString().trim();
+        String middleInitial = binding.registerMiddleInitial.getText().toString().trim();
         String email = binding.registerEmail.getText().toString().trim();
         String password = binding.registerPassword.getText().toString().trim();
-        String fullName = binding.registerFirstName.getText().toString().trim() + " " + binding.registerSurname.getText().toString().trim();
-        String studentId = binding.registerStudentId.getText().toString().trim(); // Student ID field
-        String yearBlock = binding.registerYearBlock.getText().toString().trim(); // Year/Block field
-        String gender = binding.radioGroupGender.getCheckedRadioButtonId() == R.id.radio_male ? "Male" : "Female"; // Gender field
-        String course = binding.radioGroupCourse.getCheckedRadioButtonId() == R.id.radio_bs_computer_science ? "BS-Computer Science" : "BS-Information Technology"; // Course field
+        String gender = binding.radioGroupGender.getCheckedRadioButtonId() == R.id.radio_male ? "Male" : "Female";
+        String yearBlock = binding.registerYearBlock.getText().toString().trim();
+        String course = binding.radioGroupCourse.getCheckedRadioButtonId() == R.id.radio_bs_computer_science ? "BS-Computer Science" : "BS-Information Technology";
 
         // Input validation
-        if (email.isEmpty() || password.isEmpty() || fullName.isEmpty() || studentId.isEmpty() || yearBlock.isEmpty() || gender.isEmpty() || course.isEmpty()) {
+        if (studentId.isEmpty() || firstName.isEmpty() || surname.isEmpty() || middleInitial.isEmpty() || email.isEmpty() || password.isEmpty() || yearBlock.isEmpty() || course.isEmpty()) {
             Toast.makeText(this, "Please fill all fields", Toast.LENGTH_SHORT).show();
-            return; // Exit the method if any field is empty
+            return;
         }
 
-        // Firebase Authentication to create user
+        // Firebase Authentication
         mAuth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
-                        // Registration successful
                         FirebaseUser user = mAuth.getCurrentUser();
-                        // Create a Student object with the role
-                        Student newStudent = new Student(studentId, email, fullName, gender, yearBlock, course, "student");
+                        // Create a new Student object
+                        Student newStudent = new Student(studentId, firstName, surname, middleInitial, email, gender, yearBlock, course);
 
-                        // Save user data to Firebase Realtime Database
-                        if (user != null) {
-                            databaseReference.child(user.getUid()).setValue(newStudent)
-                                    .addOnCompleteListener(saveTask -> {
-                                        if (saveTask.isSuccessful()) {
-                                            Toast.makeText(this, "Registration Successful!", Toast.LENGTH_SHORT).show();
-                                            startActivity(new Intent(this, LoginActivity.class));
-                                            finish(); // Finish this activity to remove it from the back stack
-                                        } else {
-                                            Toast.makeText(this, "Failed to save user data.", Toast.LENGTH_SHORT).show();
-                                        }
-                                    });
-                        }
+                        // Save user data to Firestore with studentId as document ID
+                        firestore.collection("students").document(studentId).set(newStudent)
+                                .addOnCompleteListener(saveTask -> {
+                                    if (saveTask.isSuccessful()) {
+                                        Toast.makeText(this, "Registration Successful!", Toast.LENGTH_SHORT).show();
+                                        startActivity(new Intent(this, LoginActivity.class));
+                                        finish();
+                                    } else {
+                                        Toast.makeText(this, "Failed to save user data.", Toast.LENGTH_SHORT).show();
+                                    }
+                                });
                     } else {
-                        // If registration fails, display a message to the user.
                         Toast.makeText(this, "Registration failed: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
                     }
                 });
