@@ -1,12 +1,12 @@
 package com.catignascabela.dodapplication;
 
 import android.view.LayoutInflater;
-import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.catignascabela.dodapplication.databinding.ItemStudentBinding;
 
 import java.util.List;
 
@@ -27,32 +27,37 @@ public class StudentAdapter extends RecyclerView.Adapter<StudentAdapter.StudentV
     @NonNull
     @Override
     public StudentViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_student, parent, false); // Use a custom layout
-        return new StudentViewHolder(view);
+        ItemStudentBinding binding = ItemStudentBinding.inflate(LayoutInflater.from(parent.getContext()), parent, false);
+        return new StudentViewHolder(binding);
     }
 
     @Override
     public void onBindViewHolder(@NonNull StudentViewHolder holder, int position) {
         Student student = studentList.get(position);
-        holder.name.setText(student.getFullName());
-        holder.studentId.setText(student.getStudentId());
-
-        holder.itemView.setOnClickListener(v -> listener.onStudentClick(student));
+        holder.bind(student);
     }
 
     @Override
     public int getItemCount() {
-        return studentList != null ? studentList.size() : 0; // Handle null or empty list
+        return studentList != null ? studentList.size() : 0;
     }
 
-    static class StudentViewHolder extends RecyclerView.ViewHolder {
-        TextView name;
-        TextView studentId;
+    class StudentViewHolder extends RecyclerView.ViewHolder {
+        private final ItemStudentBinding binding;
 
-        public StudentViewHolder(@NonNull View itemView) {
-            super(itemView);
-            name = itemView.findViewById(R.id.student_name); // Make sure this ID matches your layout
-            studentId = itemView.findViewById(R.id.student_id); // Make sure this ID matches your layout
+        public StudentViewHolder(@NonNull ItemStudentBinding binding) {
+            super(binding.getRoot());
+            this.binding = binding;
+
+            itemView.setOnClickListener(v -> {
+                // Trigger the listener with the current student
+                listener.onStudentClick(studentList.get(getAdapterPosition()));
+            });
+        }
+
+        public void bind(Student student) {
+            binding.studentName.setText(student.getFullName());
+            binding.studentId.setText(student.getStudentId());
         }
     }
 }
