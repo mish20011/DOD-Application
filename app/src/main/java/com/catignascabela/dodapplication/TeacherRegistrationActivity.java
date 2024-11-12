@@ -6,21 +6,18 @@ import android.util.Log;
 import android.widget.RadioButton;
 import android.widget.Toast;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.catignascabela.dodapplication.databinding.ActivityTeacherRegistrationBinding;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 public class TeacherRegistrationActivity extends AppCompatActivity {
 
     private ActivityTeacherRegistrationBinding binding;
     private FirebaseAuth mAuth;
-    private DatabaseReference databaseReference;
+    private FirebaseFirestore firestore;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -28,10 +25,9 @@ public class TeacherRegistrationActivity extends AppCompatActivity {
         binding = ActivityTeacherRegistrationBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        // Initialize Firebase Authentication
+        // Initialize Firebase Authentication and Firestore
         mAuth = FirebaseAuth.getInstance();
-        // Initialize Database Reference to "teachers"
-        databaseReference = FirebaseDatabase.getInstance().getReference("teachers");
+        firestore = FirebaseFirestore.getInstance();
 
         // Set the onClick listener for the register button
         binding.registerButton.setOnClickListener(v -> registerTeacher());
@@ -64,9 +60,9 @@ public class TeacherRegistrationActivity extends AppCompatActivity {
                         Teacher newTeacher = new Teacher(fullName, department, user.getUid(), email, username);
                         newTeacher.setRole("teacher"); // Set role
 
-                        // Save user data to Firebase Realtime Database
+                        // Save user data to Firestore
                         if (user != null) {
-                            databaseReference.child(user.getUid()).setValue(newTeacher)
+                            firestore.collection("teachers").document(username).set(newTeacher)
                                     .addOnCompleteListener(saveTask -> {
                                         if (saveTask.isSuccessful()) {
                                             Toast.makeText(this, "Registration Successful!", Toast.LENGTH_SHORT).show();
