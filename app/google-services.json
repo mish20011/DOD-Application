@@ -1,14 +1,13 @@
 {
   "project_info": {
-    "project_number": "399340781433",
-    "firebase_url": "https://dod-application-46926-default-rtdb.firebaseio.com",
-    "project_id": "dod-application-46926",
-    "storage_bucket": "dod-application-46926.appspot.com"
+    "project_number": "472483917783",
+    "project_id": "dod-project-2",
+    "storage_bucket": "dod-project-2.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:399340781433:android:c2d57e1d02bf07a9cb79a8",
+        "mobilesdk_app_id": "1:472483917783:android:d78a7def3d2041c53c6592",
         "android_client_info": {
           "package_name": "com.catignascabela.dodapplication"
         }
@@ -16,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyA7atBW1FJj3ggqU3v1JK8tVXt6yyguTeM"
+          "current_key": "AIzaSyAEfKsKVHhVtm00nU32Z1ef12_AA822o5w"
         }
       ],
       "services": {
