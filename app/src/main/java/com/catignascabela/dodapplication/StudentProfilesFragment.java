@@ -17,13 +17,14 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.catignascabela.dodapplication.databinding.FragmentStudentProfilesBinding; // Import your generated binding class
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class StudentProfilesFragment extends Fragment implements StudentAdapter.OnStudentClickListener {
 
-    private RecyclerView recyclerView;
+    private FragmentStudentProfilesBinding binding; // Declare the binding variable
     private StudentAdapter studentAdapter;
     private List<Student> studentList;
     private List<Student> filteredList;
@@ -34,30 +35,31 @@ public class StudentProfilesFragment extends Fragment implements StudentAdapter.
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_student_profiles, container, false);
+        // Inflate the layout using ViewBinding
+        binding = FragmentStudentProfilesBinding.inflate(inflater, container, false);
+        View view = binding.getRoot(); // Get the root view from the binding
 
         // Initialize Firestore
         db = FirebaseFirestore.getInstance();
 
         // Setup RecyclerView
-        recyclerView = view.findViewById(R.id.student_recycler_view); // Ensure the ID matches your layout
-        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+        binding.studentRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
         studentList = new ArrayList<>();
         filteredList = new ArrayList<>();
-        studentAdapter = new StudentAdapter(filteredList, this); // Use filtered list
-        recyclerView.setAdapter(studentAdapter);
+        studentAdapter = new StudentAdapter(filteredList, this);
+        binding.studentRecyclerView.setAdapter(studentAdapter);
 
         // Set up department filter
-        setupDepartmentFilter(view);
+        setupDepartmentFilter();
         loadStudents();
 
         return view;
     }
 
-    private void setupDepartmentFilter(View view) {
-        // Setting up the spinner to filter by department (BSCS, BSIT, or All)
-        Spinner departmentSpinner = view.findViewById(R.id.department_spinner); // Assume you added a Spinner in your layout
+    private void setupDepartmentFilter() {
+        // Setting up the spinner to filter by department
+        Spinner departmentSpinner = binding.departmentSpinner; // Use binding to access the Spinner
         List<String> departments = new ArrayList<>();
         departments.add("All");
         departments.add("BSCS");
@@ -83,7 +85,7 @@ public class StudentProfilesFragment extends Fragment implements StudentAdapter.
 
     private void loadStudents() {
         // Reference to the students collection in Firestore
-        db.collection("students") // Change this to your Firestore collection name
+        db.collection("students") // Ensure the collection name matches your Firestore setup
                 .get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
@@ -100,7 +102,7 @@ public class StudentProfilesFragment extends Fragment implements StudentAdapter.
                             filterStudentsByDepartment(); // Filter students after loading
                         }
                     } else {
-                        Toast.makeText(getContext(), "Failed to load students.", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getContext(), "Failed to load students: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
                     }
                 });
     }
@@ -127,6 +129,24 @@ public class StudentProfilesFragment extends Fragment implements StudentAdapter.
         // Handle click event, e.g., show student details
         Toast.makeText(getContext(), "Clicked: " + student.getFullName(), Toast.LENGTH_SHORT).show();
         // You can navigate to another fragment or activity to show more details about the student
-        // Example: navigate to a StudentDetailFragment
+        // Example: navigateToStudentDetailFragment(student);
+    }
+
+    // Uncomment and implement this method if you want to navigate to a detailed view
+    /*
+    private void navigateToStudentDetailFragment(Student student) {
+        StudentDetailFragment detailFragment = StudentDetailFragment.newInstance(student);
+        requireActivity().getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, detailFragment) // Update with your fragment container ID
+                .addToBackStack(null)
+                .commit();
+    }
+    */
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        binding = null; // Avoid memory leaks by setting binding to null
     }
 }
