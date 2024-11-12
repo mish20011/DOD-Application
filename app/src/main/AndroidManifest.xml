@@ -2,9 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Permissions for image upload -->
+    <!-- Permissions for image upload and internet access -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="true"
@@ -24,12 +25,10 @@
             </intent-filter>
         </activity>
 
-        <!-- RegistrationActivity -->
+        <!-- Registration Activities -->
         <activity
             android:name=".StudentRegistrationActivity"
             android:exported="true" />
-
-        <!-- Teacher Registration Activity -->
         <activity
             android:name=".TeacherRegistrationActivity"
             android:exported="false" />
@@ -40,16 +39,12 @@
             android:exported="false" />
 
         <!-- Additional Activities -->
-        <!-- If you have activities for the following fragments, declare them here -->
-<!--        <activity-->
-<!--            android:name=".ViolationsActivity"-->
-<!--            android:exported="false" />-->
-
         <activity
             android:name=".ScheduleActivity"
             android:exported="false" />
 
-        <!-- Add any additional activities you have for your fragments -->
+        <!-- Uncomment and add any additional activities for your fragments -->
+        <!-- <activity android:name=".ViolationsActivity" android:exported="false" /> -->
 
     </application>
 
