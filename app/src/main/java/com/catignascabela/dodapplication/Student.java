@@ -34,78 +34,20 @@ public class Student {
         this.role = "student"; // Set default role as student
     }
 
-    // Getters and Setters for each field
-    public String getStudentId() {
-        return studentId;
-    }
+    // Getters and Setters...
 
-    public void setStudentId(String studentId) {
-        this.studentId = studentId;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getFullName() {
-        return fullName;
-    }
-
-    public void setFullName(String fullName) {
-        this.fullName = fullName;
-    }
-
-    public String getGender() {
-        return gender;
-    }
-
-    public void setGender(String gender) {
-        this.gender = gender;
-    }
-
-    public String getYearBlock() {
-        return yearBlock;
-    }
-
-    public void setYearBlock(String yearBlock) {
-        this.yearBlock = yearBlock;
-    }
-
-    public String getCourse() {
-        return course;
-    }
-
-    public void setCourse(String course) {
-        this.course = course;
-    }
-
-    public String getProfileImageUri() {
-        return profileImageUri;
-    }
-
-    public void setProfileImageUri(String profileImageUri) {
-        this.profileImageUri = profileImageUri;
-    }
-
-    // Method to add a violation
-    public void addViolation(String violation, String punishment) {
-        violations.add(violation + " - " + punishment); // Store violations with punishment
-    }
-
-    // Getter for violations if needed
-    public List<String> getViolations() {
-        return violations;
-    }
-
-    public String getRole() {
-        return role;
-    }
-
-    public void setRole(String role) {
-        this.role = role;
+    @Override
+    public String toString() {
+        return "Student{" +
+                "studentId='" + studentId + '\'' +
+                ", email='" + email + '\'' +
+                ", fullName='" + fullName + '\'' +
+                ", gender='" + gender + '\'' +
+                ", yearBlock='" + yearBlock + '\'' +
+                ", course='" + course + '\'' +
+                ", profileImageUri='" + profileImageUri + '\'' +
+                ", violations=" + violations +
+                ", role='" + role + '\'' +
+                '}';
     }
 }
