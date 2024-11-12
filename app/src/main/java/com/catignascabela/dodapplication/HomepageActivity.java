@@ -26,6 +26,7 @@ import com.catignascabela.dodapplication.databinding.ActivityHomepageBinding;
 public class HomepageActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
     private ActivityHomepageBinding binding;
     private FirebaseAuth firebaseAuth;
+    private FirebaseAuth.AuthStateListener authStateListener;
     private long lastBackPressTime = 0;
 
     @Override
@@ -49,16 +50,25 @@ public class HomepageActivity extends AppCompatActivity implements NavigationVie
         // Initialize Firebase Auth
         firebaseAuth = FirebaseAuth.getInstance();
 
+        // Setup AuthStateListener
+        authStateListener = new FirebaseAuth.AuthStateListener() {
+            @Override
+            public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
+                FirebaseUser currentUser = firebaseAuth.getCurrentUser();
+                if (currentUser == null) {
+                    // User is signed out, navigate to LoginActivity
+                    startLoginActivity();
+                }
+            }
+        };
+
         // Check if the user is logged in and load the appropriate fragment
         if (savedInstanceState == null) {
-            FirebaseUser currentUser = firebaseAuth.getCurrentUser();
             boolean isTeacher = getIntent().getBooleanExtra("isTeacher", false);
-
-            // Load the appropriate fragment based on user type
+            FirebaseUser currentUser = firebaseAuth.getCurrentUser();
             if (currentUser != null) {
                 loadInitialFragment(isTeacher);
             } else {
-                // If not logged in, navigate to LoginActivity
                 startLoginActivity();
             }
         }
@@ -84,11 +94,8 @@ public class HomepageActivity extends AppCompatActivity implements NavigationVie
         Fragment selectedFragment = null;
 
         if (id == R.id.nav_home) {
-            // Check if the user is logged in
             FirebaseUser currentUser = firebaseAuth.getCurrentUser();
             boolean isTeacher = getIntent().getBooleanExtra("isTeacher", false);
-
-            // Load the appropriate fragment based on user type
             if (currentUser != null) {
                 loadInitialFragment(isTeacher);
             } else {
@@ -134,7 +141,24 @@ public class HomepageActivity extends AppCompatActivity implements NavigationVie
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+        // Add AuthStateListener
+        firebaseAuth.addAuthStateListener(authStateListener);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        // Remove AuthStateListener
+        if (authStateListener != null) {
+            firebaseAuth.removeAuthStateListener(authStateListener);
+        }
+    }
+
+    @Override
     public void onBackPressed() {
+        super.onBackPressed();
         if (binding.drawerLayout.isDrawerOpen(GravityCompat.START)) {
             binding.drawerLayout.closeDrawer(GravityCompat.START);
         } else {
