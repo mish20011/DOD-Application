@@ -7,20 +7,28 @@ import androidx.fragment.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.Spinner;
 import android.widget.Toast;
-import com.catignascabela.dodapplication.databinding.FragmentHomeTeacherBinding;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
-import com.google.firebase.database.DataSnapshot;
+import androidx.recyclerview.widget.LinearLayoutManager;
 
-public class TeacherHomeFragment extends Fragment {
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
+import com.catignascabela.dodapplication.databinding.FragmentHomeTeacherBinding;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class TeacherHomeFragment extends Fragment implements StudentAdapter.OnStudentClickListener {
 
     private FragmentHomeTeacherBinding binding;
-    private DatabaseReference databaseReference; // Firebase Database reference
+    private StudentAdapter studentAdapter;
+    private List<Student> studentList;
+    private List<Student> filteredList;
+    private String currentFilter = "All"; // Default filter
+    private FirebaseFirestore db;
 
     @Nullable
     @Override
@@ -29,67 +37,97 @@ public class TeacherHomeFragment extends Fragment {
         binding = FragmentHomeTeacherBinding.inflate(inflater, container, false);
         View view = binding.getRoot();
 
-        // Initialize Firebase Auth
-        FirebaseAuth auth = FirebaseAuth.getInstance();
-        FirebaseUser currentUser = auth.getCurrentUser(); // Get the current logged-in user
+        // Initialize Firestore
+        db = FirebaseFirestore.getInstance();
 
-        // Check if the user is logged in
-        if (currentUser != null) {
-            String teacherId = currentUser.getUid(); // Get the unique ID of the logged-in user
-            // Initialize Firebase Database reference
-            databaseReference = FirebaseDatabase.getInstance().getReference("teachers");
-            loadTeacherName(teacherId);
-        } else {
-            binding.teacherName.setText("Teacher's Name"); // Default name if not found
-            Toast.makeText(getActivity(), "User not logged in.", Toast.LENGTH_SHORT).show();
-        }
+        // Setup RecyclerView
+        binding.studentRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        // Set up button to view students' profiles
-        binding.viewStudentsButton.setOnClickListener(v -> {
-            getParentFragmentManager().beginTransaction()
-                    .replace(R.id.fragment_container, new StudentProfilesFragment())
-                    .addToBackStack(null) // Allow back navigation
-                    .commit();
-        });
+        studentList = new ArrayList<>();
+        filteredList = new ArrayList<>();
+        studentAdapter = new StudentAdapter(filteredList, this);
+        binding.studentRecyclerView.setAdapter(studentAdapter);
 
-        // Set up button to manage violations (if needed)
-        binding.manageViolationsButton.setOnClickListener(v -> {
-            // Navigate to the violations management fragment
-            getParentFragmentManager().beginTransaction()
-                    .replace(R.id.fragment_container, new ManageViolationsFragment()) // Assuming you create this fragment
-                    .addToBackStack(null)
-                    .commit();
-        });
+        // Set up department filter
+        setupDepartmentFilter();
+        loadStudents();
 
         return view;
     }
 
-    private void loadTeacherName(String teacherId) {
-        databaseReference.child(teacherId).addListenerForSingleValueEvent(new ValueEventListener() {
+    private void setupDepartmentFilter() {
+        Spinner departmentSpinner = binding.departmentSpinner; // Access the Spinner
+        List<String> departments = new ArrayList<>();
+        departments.add("All");
+        departments.add("BSCS");
+        departments.add("BSIT");
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_spinner_item, departments);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        departmentSpinner.setAdapter(adapter);
+
+        departmentSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                if (dataSnapshot.exists()) {
-                    String teacherName = dataSnapshot.child("fullName").getValue(String.class);
-                    if (teacherName != null) {
-                        binding.teacherName.setText(teacherName);
-                    } else {
-                        binding.teacherName.setText("Teacher's Name");
-                    }
-                } else {
-                    binding.teacherName.setText("Teacher not found");
-                }
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                currentFilter = departments.get(position);
+                filterStudentsByDepartment();
             }
 
             @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
-                Toast.makeText(getActivity(), "Failed to load teacher's name.", Toast.LENGTH_SHORT).show();
+            public void onNothingSelected(AdapterView<?> parent) {
+                // Do nothing
             }
         });
+    }
+
+    private void loadStudents() {
+        db.collection("students") // Reference to the students collection in Firestore
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        QuerySnapshot snapshot = task.getResult();
+                        if (snapshot != null) {
+                            studentList.clear();
+                            for (QueryDocumentSnapshot document : snapshot) {
+                                Student student = document.toObject(Student.class);
+                                if (student != null) {
+                                    studentList.add(student);
+                                }
+                            }
+                            filterStudentsByDepartment(); // Filter students after loading
+                        }
+                    } else {
+                        Toast.makeText(getContext(), "Failed to load students: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    private void filterStudentsByDepartment() {
+        filteredList.clear();
+
+        if ("All".equals(currentFilter)) {
+            filteredList.addAll(studentList);
+        } else {
+            for (Student student : studentList) {
+                if (student.getCourse() != null && student.getCourse().equals(currentFilter)) {
+                    filteredList.add(student);
+                }
+            }
+        }
+
+        studentAdapter.notifyDataSetChanged();
+    }
+
+    @Override
+    public void onStudentClick(Student student) {
+        // Placeholder for student click handling
+        Toast.makeText(getContext(), "Clicked: " + student.getFullName(), Toast.LENGTH_SHORT).show();
+        // You can implement student detail navigation here later
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        binding = null; // Prevent memory leaks
+        binding = null; // Avoid memory leaks
     }
 }
