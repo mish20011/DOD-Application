@@ -6,6 +6,8 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
+import android.view.View;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -23,6 +25,7 @@ public class StudentRegistrationActivity extends AppCompatActivity {
     private Bitmap profileImageBitmap;
     private FirebaseAuth mAuth;
     private FirebaseFirestore firestore;
+    private ProgressBar progressBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,9 +36,13 @@ public class StudentRegistrationActivity extends AppCompatActivity {
         // Initialize Firebase Authentication and Firestore
         mAuth = FirebaseAuth.getInstance();
         firestore = FirebaseFirestore.getInstance();
+        progressBar = binding.progressBar; // Assuming you have a ProgressBar in your layout
 
         // Set the onClick listener for the register button
         binding.registerButton.setOnClickListener(v -> registerStudent());
+
+        // Set the onClick listener for the image selection button
+        binding.selectImageButton.setOnClickListener(v -> openGallery());
     }
 
     private void openGallery() {
@@ -47,12 +54,15 @@ public class StudentRegistrationActivity extends AppCompatActivity {
     private final ActivityResultLauncher<Intent> photoResultLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
                 if (result.getResultCode() == RESULT_OK) {
-                    Uri imageUri = result.getData().getData();
-                    try {
-                        profileImageBitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), imageUri);
-                        // Removed the line that sets the image to an ImageView
-                    } catch (Exception e) {
-                        Log.e("ImageError", "Error loading image", e);
+                    Uri imageUri = result.getData() != null ? result.getData().getData() : null;
+                    if (imageUri != null) {
+                        try {
+                            profileImageBitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), imageUri);
+                            binding.imageViewProfile.setImageBitmap(profileImageBitmap); // Display the selected image
+                        } catch (Exception e) {
+                            Log.e("ImageError", "Error loading image", e);
+                            Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show();
+                        }
                     }
                 }
             });
@@ -75,6 +85,7 @@ public class StudentRegistrationActivity extends AppCompatActivity {
         }
 
         // Firebase Authentication
+        progressBar.setVisibility(View.VISIBLE); // Show progress
         mAuth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
@@ -85,16 +96,18 @@ public class StudentRegistrationActivity extends AppCompatActivity {
                         // Save user data to Firestore with studentId as document ID
                         firestore.collection("students").document(studentId).set(newStudent)
                                 .addOnCompleteListener(saveTask -> {
+                                    progressBar.setVisibility(View.GONE); // Hide progress
                                     if (saveTask.isSuccessful()) {
                                         Toast.makeText(this, "Registration Successful!", Toast.LENGTH_SHORT).show();
                                         startActivity(new Intent(this, LoginActivity.class));
                                         finish();
                                     } else {
-                                        Toast.makeText(this, "Failed to save user data.", Toast.LENGTH_SHORT).show();
+                                        Toast.makeText(this, "Failed to save user data: " + (saveTask.getException() != null ? saveTask.getException().getMessage() : "Unknown error"), Toast.LENGTH_SHORT).show();
                                     }
                                 });
                     } else {
-                        Toast.makeText(this, "Registration failed: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                        progressBar.setVisibility(View.GONE); // Hide progress
+                        Toast.makeText(this, "Registration failed: " + (task.getException() != null ? task.getException().getMessage() : "Unknown error"), Toast.LENGTH_SHORT).show();
                     }
                 });
     }

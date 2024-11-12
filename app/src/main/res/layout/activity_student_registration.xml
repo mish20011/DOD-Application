@@ -138,13 +138,6 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Female" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="Year/Block"
-                        android:textColor="@color/green" />
                 </RadioGroup>
 
                 <EditText
@@ -153,7 +146,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:background="@drawable/custom_edittext"
-                    android:hint="Year &amp; Block (e.g., 1A)"
+                    android:hint="Year/Block (e.g., 1A)"
                     android:inputType="text"
                     android:padding="6dp"
                     android:textColor="@color/black"
@@ -191,6 +184,19 @@
                         android:text="BS-Information Technology" />
                 </RadioGroup>
 
+                <!-- Button to select profile image -->
+                <Button
+                    android:id="@+id/select_image_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:backgroundTint="@color/green"
+                    android:text="Select Profile Image"
+                    android:textColor="@color/white"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/radio_group_course" />
+
                 <Button
                     android:id="@+id/register_button"
                     android:layout_width="wrap_content"
@@ -201,7 +207,18 @@
                     android:textColor="@color/white"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/radio_group_course" />
+                    app:layout_constraintTop_toBottomOf="@id/select_image_button" />
+
+                <!-- Progress Bar -->
+                <ProgressBar
+                    android:id="@+id/progress_bar"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:visibility="gone"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/register_button" />
             </androidx.constraintlayout.widget.ConstraintLayout>
         </androidx.cardview.widget.CardView>
     </androidx.constraintlayout.widget.ConstraintLayout>

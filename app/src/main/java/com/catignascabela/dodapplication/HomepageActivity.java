@@ -75,13 +75,7 @@ public class HomepageActivity extends AppCompatActivity implements NavigationVie
     }
 
     private void loadInitialFragment(boolean isTeacher) {
-        Fragment initialFragment;
-        if (isTeacher) {
-            initialFragment = new TeacherHomeFragment();
-        } else {
-            initialFragment = new StudentHomeFragment();
-        }
-
+        Fragment initialFragment = isTeacher ? new TeacherHomeFragment() : new StudentHomeFragment();
         getSupportFragmentManager().beginTransaction()
                 .replace(R.id.fragment_container, initialFragment)
                 .commit();
@@ -129,6 +123,9 @@ public class HomepageActivity extends AppCompatActivity implements NavigationVie
         editor.clear();
         editor.apply();
 
+        // Show logout feedback
+        Toast.makeText(this, "You have been logged out.", Toast.LENGTH_SHORT).show();
+
         // Navigate back to the login activity
         startLoginActivity();
     }
@@ -158,7 +155,6 @@ public class HomepageActivity extends AppCompatActivity implements NavigationVie
 
     @Override
     public void onBackPressed() {
-        super.onBackPressed();
         if (binding.drawerLayout.isDrawerOpen(GravityCompat.START)) {
             binding.drawerLayout.closeDrawer(GravityCompat.START);
         } else {
@@ -176,7 +172,7 @@ public class HomepageActivity extends AppCompatActivity implements NavigationVie
     private void showExitDialog() {
         new AlertDialog.Builder(this)
                 .setTitle("Exit")
-                .setMessage("Are you sure you want to exit?")
+                .setMessage("Are you sure you want to exit? You will be logged out.")
                 .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int which) {
                         logout(); // Sign out and exit the app
