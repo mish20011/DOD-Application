@@ -1,12 +1,16 @@
 package com.catignascabela.dodapplication;
 
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.util.Log;
 import android.view.MenuItem;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -22,6 +26,7 @@ import com.catignascabela.dodapplication.databinding.ActivityHomepageBinding;
 public class HomepageActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
     private ActivityHomepageBinding binding;
     private FirebaseAuth firebaseAuth;
+    private long lastBackPressTime = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -133,7 +138,27 @@ public class HomepageActivity extends AppCompatActivity implements NavigationVie
         if (binding.drawerLayout.isDrawerOpen(GravityCompat.START)) {
             binding.drawerLayout.closeDrawer(GravityCompat.START);
         } else {
-            super.onBackPressed();
+            long currentTime = System.currentTimeMillis();
+            if (currentTime - lastBackPressTime < 2000) {
+                // Show exit dialog
+                showExitDialog();
+            } else {
+                lastBackPressTime = currentTime;
+                Toast.makeText(this, "Press back again to exit", Toast.LENGTH_SHORT).show();
+            }
         }
+    }
+
+    private void showExitDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("Exit")
+                .setMessage("Are you sure you want to exit?")
+                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        logout(); // Sign out and exit the app
+                    }
+                })
+                .setNegativeButton("No", null)
+                .show();
     }
 }
