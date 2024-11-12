@@ -36,7 +36,6 @@ public class StudentRegistrationActivity extends AppCompatActivity {
 
         // Set the onClick listener for the register button
         binding.registerButton.setOnClickListener(v -> registerStudent());
-        binding.uploadProfilePictureButton.setOnClickListener(v -> openGallery());
     }
 
     private void openGallery() {

@@ -59,7 +59,7 @@ public class StudentHomeFragment extends Fragment {
                                 // Set the student details in the TextViews
                                 binding.studentIdTextView.setText("ID: " + student.getStudentId());
                                 binding.genderTextView.setText("Gender: " + student.getGender());
-                                binding.collegeYearTextView.setText("Year/Block: " + student.getYearBlock());
+                                binding.collegeYearTextView.setText("Year: " + student.getYearBlock());
                                 binding.courseTextView.setText("Course: " + student.getCourse());
                                 binding.fullNameTextView.setText("Full Name: " + student.getFullName());
 

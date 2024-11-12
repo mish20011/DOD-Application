@@ -21,20 +21,55 @@ public class Student {
     }
 
     // Constructor
-    public Student(String studentId, String email, String fullName, String gender,
-                   String yearBlock, String course, String profileImageUri) {
+    public Student(String studentId, String firstName, String middleInitial, String surname, String email,
+                   String gender, String yearBlock, String course) {
         this.studentId = studentId;
         this.email = email;
-        this.fullName = fullName;
+        this.fullName = firstName + " " + middleInitial + " " + surname; // Combine names into full name
         this.gender = gender;
         this.yearBlock = yearBlock;
         this.course = course;
-        this.profileImageUri = profileImageUri;
         this.violations = new ArrayList<>(); // Initialize the violations list
         this.role = "student"; // Set default role as student
     }
 
-    // Getters and Setters...
+
+    // Getters
+    public String getStudentId() {
+        return studentId;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public String getGender() {
+        return gender;
+    }
+
+    public String getYearBlock() {
+        return yearBlock;
+    }
+
+    public String getCourse() {
+        return course;
+    }
+
+    public String getProfileImageUri() {
+        return profileImageUri;
+    }
+
+    public List<String> getViolations() {
+        return violations;
+    }
+
+    public String getRole() {
+        return role;
+    }
 
     @Override
     public String toString() {

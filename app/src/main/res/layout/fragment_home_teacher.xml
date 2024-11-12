@@ -13,18 +13,19 @@
         android:textSize="24sp"
         android:textStyle="bold" />
 
-    <Button
-        android:id="@+id/view_students_button"
+    <!-- Filter spinner for department selection -->
+    <Spinner
+        android:id="@+id/department_spinner"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="View Student Profiles"
-        android:layout_marginTop="16dp"/>
+        android:layout_marginTop="16dp" />
 
-    <!-- Add the manage violations button here -->
-    <Button
-        android:id="@+id/manageViolationsButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Manage Violations"
-        android:layout_marginTop="16dp"/>
+    <!-- RecyclerView to display the list of students -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/student_recycler_view"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="16dp" />
+
 </LinearLayout>
