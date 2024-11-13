@@ -34,7 +34,12 @@ public class StudentAdapter extends RecyclerView.Adapter<StudentAdapter.StudentV
     @Override
     public void onBindViewHolder(@NonNull StudentViewHolder holder, int position) {
         Student student = studentList.get(position);
-        holder.bind(student);
+
+        // Set full name using the new fields
+        holder.binding.studentName.setText(student.getFullName());
+        holder.binding.studentId.setText(student.getStudentId());
+
+        holder.itemView.setOnClickListener(v -> listener.onStudentClick(student));
     }
 
     @Override
@@ -42,22 +47,12 @@ public class StudentAdapter extends RecyclerView.Adapter<StudentAdapter.StudentV
         return studentList != null ? studentList.size() : 0;
     }
 
-    class StudentViewHolder extends RecyclerView.ViewHolder {
-        private final ItemStudentBinding binding;
+    static class StudentViewHolder extends RecyclerView.ViewHolder {
+        ItemStudentBinding binding;
 
         public StudentViewHolder(@NonNull ItemStudentBinding binding) {
             super(binding.getRoot());
             this.binding = binding;
-
-            itemView.setOnClickListener(v -> {
-                // Trigger the listener with the current student
-                listener.onStudentClick(studentList.get(getAdapterPosition()));
-            });
-        }
-
-        public void bind(Student student) {
-            binding.studentName.setText(student.getFullName());
-            binding.studentId.setText(student.getStudentId());
         }
     }
 }

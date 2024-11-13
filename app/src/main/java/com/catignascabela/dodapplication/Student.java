@@ -4,85 +4,59 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Student {
-    private String studentId;
+    private String uid; // Unique identifier
     private String email;
-    private String fullName;
+    private String fullName; // Full name
+    private String first; // First name
+    private String middle; // Middle initial
+    private String last; // Last name
+    private int born; // Birth year
     private String gender;
     private String yearBlock;
     private String course;
     private String profileImageUri;
-    private List<String> violations; // List to store violations
-    private String role; // Added role attribute
+    private List<Violation> violations; // List of Violation objects
+    private String role; // User role
+    private String studentId; // Student ID
 
-    // Default constructor required for Firebase calls
+    // Default constructor required for Firestore
     public Student() {
-        this.violations = new ArrayList<>(); // Initialize the violations list
-        this.role = "student"; // Set default role as student
+        this.violations = new ArrayList<>(); // Initialize violations list
+        this.role = "student"; // Default role
     }
 
     // Constructor
-    public Student(String studentId, String firstName, String middleInitial, String surname, String email,
-                   String gender, String yearBlock, String course) {
-        this.studentId = studentId;
+    public Student(String uid, String email, String first, String middle, String last, int born,
+                   String gender, String yearBlock, String course, String profileImageUri, String studentId) {
+        this.uid = uid;
         this.email = email;
-        this.fullName = firstName + " " + middleInitial + " " + surname; // Combine names into full name
+        this.first = first;
+        this.middle = middle;
+        this.last = last;
+        this.born = born;
         this.gender = gender;
         this.yearBlock = yearBlock;
         this.course = course;
-        this.violations = new ArrayList<>(); // Initialize the violations list
-        this.role = "student"; // Set default role as student
+        this.profileImageUri = profileImageUri;
+        this.violations = new ArrayList<>(); // Initialize violations list
+        this.role = "student"; // Default role
+        this.studentId = studentId; // Student ID
+        this.fullName = first + " " + middle + " " + last; // Set full name
     }
-
 
     // Getters
-    public String getStudentId() {
-        return studentId;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public String getFullName() {
-        return fullName;
-    }
-
-    public String getGender() {
-        return gender;
-    }
-
-    public String getYearBlock() {
-        return yearBlock;
-    }
-
-    public String getCourse() {
-        return course;
-    }
-
-    public String getProfileImageUri() {
-        return profileImageUri;
-    }
-
-    public List<String> getViolations() {
-        return violations;
-    }
-
-    public String getRole() {
-        return role;
-    }
-
-    @Override
-    public String toString() {
-        return "Student{" +
-                "studentId='" + studentId + '\'' +
-                ", email='" + email + '\'' +
-                ", fullName='" + fullName + '\'' +
-                ", gender='" + gender + '\'' +
-                ", yearBlock='" + yearBlock + '\'' +
-                ", course='" + course + '\'' +
-                ", profileImageUri='" + profileImageUri + '\'' +
-                ", violations=" + violations +
-                ", role='" + role + '\'' +
-                '}';
-    }
+    public String getUid() { return uid; }
+    public String getEmail() { return email; }
+    public String getFullName() { return fullName; }
+    public String getFirst() { return first; }
+    public String getMiddle() { return middle; }
+    public String getLast() { return last; }
+    public int getBorn() { return born; }
+    public String getGender() { return gender; }
+    public String getYearBlock() { return yearBlock; }
+    public String getCourse() { return course; }
+    public String getProfileImageUri() { return profileImageUri; }
+    public List<Violation> getViolations() { return violations; }
+    public String getRole() { return role; }
+    public String getStudentId() { return studentId; }
 }

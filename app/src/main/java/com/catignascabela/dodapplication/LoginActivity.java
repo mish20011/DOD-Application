@@ -1,14 +1,10 @@
 package com.catignascabela.dodapplication;
 
-import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.RadioButton;
 import android.widget.Toast;
 
@@ -17,11 +13,16 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.catignascabela.dodapplication.databinding.ActivityLoginBinding;
 import com.catignascabela.dodapplication.databinding.DialogRegistrationChoiceBinding;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 public class LoginActivity extends AppCompatActivity {
     private ActivityLoginBinding binding;
+    private FirebaseAuth mAuth;
+    private FirebaseFirestore firestore;
     private DialogRegistrationChoiceBinding dialogBinding;
-    private SharedPreferences sharedPreferences;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,7 +30,8 @@ public class LoginActivity extends AppCompatActivity {
         binding = ActivityLoginBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        sharedPreferences = getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
+        mAuth = FirebaseAuth.getInstance();
+        firestore = FirebaseFirestore.getInstance();
 
         setupTextWatchers();
         binding.button.setOnClickListener(v -> handleLogin());
@@ -58,35 +60,53 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void handleLogin() {
-        String idOrUsername = binding.userid.getText().toString().trim();
+        String email = binding.userid.getText().toString().trim();
         String password = binding.password.getText().toString().trim();
 
         binding.useridUnderline.setVisibility(View.GONE);
         binding.passwordUnderline.setVisibility(View.GONE);
 
-        if (idOrUsername.isEmpty() || password.isEmpty()) {
-            binding.useridUnderline.setVisibility(idOrUsername.isEmpty() ? View.VISIBLE : View.GONE);
+        if (email.isEmpty() || password.isEmpty()) {
+            binding.useridUnderline.setVisibility(email.isEmpty() ? View.VISIBLE : View.GONE);
             binding.passwordUnderline.setVisibility(password.isEmpty() ? View.VISIBLE : View.GONE);
-            Toast.makeText(LoginActivity.this, "Empty Login", Toast.LENGTH_SHORT).show();
+            Toast.makeText(LoginActivity.this, "Please fill in all fields.", Toast.LENGTH_SHORT).show();
         } else {
-            loginUser(idOrUsername, password);
+            authenticateWithEmail(email, password);
         }
     }
 
-    private void loginUser(String idOrUsername, String password) {
-        // Retrieve stored user credentials from SharedPreferences
-        String storedPassword = sharedPreferences.getString(idOrUsername + "_password", null);
-        String storedRole = sharedPreferences.getString(idOrUsername + "_role", null);
+    private void authenticateWithEmail(String email, String password) {
+        mAuth.signInWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        FirebaseUser user = mAuth.getCurrentUser();
+                        if (user != null) {
+                            checkUserRoleAndNavigate(user.getUid());
+                        } else {
+                            Toast.makeText(LoginActivity.this, "Authentication failed.", Toast.LENGTH_SHORT).show();
+                        }
+                    } else {
+                        Toast.makeText(LoginActivity.this, "Authentication failed: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
 
-        if (storedPassword != null && storedPassword.equals(password)) {
-            if (storedRole != null) {
-                navigateToHomepage("teacher".equals(storedRole));
-            } else {
-                Toast.makeText(LoginActivity.this, "Invalid user role", Toast.LENGTH_SHORT).show();
-            }
-        } else {
-            Toast.makeText(LoginActivity.this, "Invalid ID or password", Toast.LENGTH_SHORT).show();
-        }
+    private void checkUserRoleAndNavigate(String uid) {
+        firestore.collection("users").document(uid)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        DocumentSnapshot document = task.getResult();
+                        if (document.exists()) {
+                            String role = document.getString("role");
+                            navigateToHomepage("teacher".equals(role));
+                        } else {
+                            Toast.makeText(LoginActivity.this, "User not found.", Toast.LENGTH_SHORT).show();
+                        }
+                    } else {
+                        Toast.makeText(LoginActivity.this, "Database error: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
 
     private void navigateToHomepage(boolean isTeacher) {
@@ -104,18 +124,13 @@ public class LoginActivity extends AppCompatActivity {
         AlertDialog dialog = builder.create();
         dialogBinding.radioGroup.clearCheck();
 
-        Button btnCancel = dialogBinding.btnCancel;
-        Button btnConfirm = dialogBinding.btnConfirm;
-
-        btnCancel.setOnClickListener(v -> dialog.dismiss());
-        btnConfirm.setOnClickListener(v -> {
+        dialogBinding.btnCancel.setOnClickListener(v -> dialog.dismiss());
+        dialogBinding.btnConfirm.setOnClickListener(v -> {
             int selectedId = dialogBinding.radioGroup.getCheckedRadioButtonId();
             if (selectedId == -1) {
                 Toast.makeText(LoginActivity.this, "Please select an option.", Toast.LENGTH_SHORT).show();
             } else {
-                RadioButton selectedRadioButton = dialogBinding.getRoot().findViewById(selectedId);
-                String selectedRole = selectedRadioButton.getText().toString();
-
+                String selectedRole = ((RadioButton) dialogBinding.getRoot().findViewById(selectedId)).getText().toString();
                 if ("Student".equals(selectedRole)) {
                     startActivity(new Intent(this, StudentRegistrationActivity.class));
                 } else if ("Teacher".equals(selectedRole)) {
@@ -129,17 +144,6 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void showForgotPasswordActivity() {
-        // Launch password reset activity
         startActivity(new Intent(LoginActivity.this, ForgotPasswordActivity.class));
-    }
-
-    // Sample method to populate SharedPreferences with mock data for testing
-    private void populateMockData() {
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putString("201-1346_password", "12345678");
-        editor.putString("201-1346_role", "student");
-        editor.putString("teacherUsername_password", "password123");
-        editor.putString("teacherUsername_role", "teacher");
-        editor.apply();
     }
 }

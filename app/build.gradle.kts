@@ -4,7 +4,6 @@ plugins {
 }
 
 android {
-
     namespace = "com.catignascabela.dodapplication"
     compileSdk = 34
 
@@ -21,8 +20,7 @@ android {
         buildFeatures {
             dataBinding = true
         }
-
-        }
+    }
 
     buildTypes {
         release {
@@ -33,22 +31,29 @@ android {
             )
         }
     }
+
+    // Set Java compatibility to version 17
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    // Set up Java toolchain for version 17
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(17)
+        }
     }
 }
 
 dependencies {
-    dependencies {
-        // Import the BoM for the Firebase platform
-        implementation(platform("com.google.firebase:firebase-bom:33.5.1"))
+    // Import the BoM for the Firebase platform
+    implementation(platform("com.google.firebase:firebase-bom:33.5.1"))
 
-        // Add the dependency for the Firebase Authentication library
-        // When using the BoM, you don't specify versions in Firebase library dependencies
-        implementation("com.google.firebase:firebase-auth")
-        implementation("com.google.firebase:firebase-firestore")
-    }
+    // Add the dependency for the Firebase Authentication library
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-firestore")
+
     implementation("com.google.android.gms:play-services-auth:21.2.0")
     implementation(libs.appcompat.v161)
     implementation("androidx.fragment:fragment:1.5.7")
@@ -65,4 +70,3 @@ dependencies {
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
 }
-

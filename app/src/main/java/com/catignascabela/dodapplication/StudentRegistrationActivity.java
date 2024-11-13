@@ -1,114 +1,130 @@
 package com.catignascabela.dodapplication;
 
-import android.content.Intent;
-import android.graphics.Bitmap;
-import android.net.Uri;
 import android.os.Bundle;
-import android.provider.MediaStore;
-import android.util.Log;
-import android.view.View;
-import android.widget.ProgressBar;
+import android.text.TextUtils;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.Toast;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.catignascabela.dodapplication.databinding.ActivityStudentRegistrationBinding;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
+
+import java.util.HashMap;
 
 public class StudentRegistrationActivity extends AppCompatActivity {
 
-    private ActivityStudentRegistrationBinding binding;
-    private Bitmap profileImageBitmap;
-    private FirebaseAuth mAuth;
-    private FirebaseFirestore firestore;
-    private ProgressBar progressBar;
+    private EditText studentId, surname, firstName, middleInitial, email, password, yearBlock;
+    private RadioGroup genderGroup, courseGroup;
+    private Button registerButton;
+    private FirebaseAuth auth;
+    private FirebaseFirestore db;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        binding = ActivityStudentRegistrationBinding.inflate(getLayoutInflater());
-        setContentView(binding.getRoot());
+        setContentView(R.layout.activity_student_registration);
 
-        // Initialize Firebase Authentication and Firestore
-        mAuth = FirebaseAuth.getInstance();
-        firestore = FirebaseFirestore.getInstance();
-        progressBar = binding.progressBar; // Assuming you have a ProgressBar in your layout
+        // Initialize Firebase Auth and Firestore
+        auth = FirebaseAuth.getInstance();
+        db = FirebaseFirestore.getInstance();
 
-        // Set the onClick listener for the register button
-        binding.registerButton.setOnClickListener(v -> registerStudent());
+        // Initialize UI components
+        initViews();
 
-        // Set the onClick listener for the image selection button
-        binding.selectImageButton.setOnClickListener(v -> openGallery());
+        // Set click listener for register button
+        registerButton.setOnClickListener(v -> registerStudent());
     }
 
-    private void openGallery() {
-        // Launch the gallery to pick an image
-        Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-        photoResultLauncher.launch(intent);
+    private void initViews() {
+        studentId = findViewById(R.id.register_student_id);
+        surname = findViewById(R.id.register_surname);
+        firstName = findViewById(R.id.register_first_name);
+        middleInitial = findViewById(R.id.register_middle_initial);
+        email = findViewById(R.id.register_email);
+        password = findViewById(R.id.register_password);
+        yearBlock = findViewById(R.id.register_year_block);
+        genderGroup = findViewById(R.id.radio_group_gender);
+        courseGroup = findViewById(R.id.radio_group_course);
+        registerButton = findViewById(R.id.register_button);
     }
-
-    private final ActivityResultLauncher<Intent> photoResultLauncher =
-            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
-                if (result.getResultCode() == RESULT_OK) {
-                    Uri imageUri = result.getData() != null ? result.getData().getData() : null;
-                    if (imageUri != null) {
-                        try {
-                            profileImageBitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), imageUri);
-                            binding.imageViewProfile.setImageBitmap(profileImageBitmap); // Display the selected image
-                        } catch (Exception e) {
-                            Log.e("ImageError", "Error loading image", e);
-                            Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show();
-                        }
-                    }
-                }
-            });
 
     private void registerStudent() {
-        String studentId = binding.registerStudentId.getText().toString().trim();
-        String firstName = binding.registerFirstName.getText().toString().trim();
-        String surname = binding.registerSurname.getText().toString().trim();
-        String middleInitial = binding.registerMiddleInitial.getText().toString().trim();
-        String email = binding.registerEmail.getText().toString().trim();
-        String password = binding.registerPassword.getText().toString().trim();
-        String gender = binding.radioGroupGender.getCheckedRadioButtonId() == R.id.radio_male ? "Male" : "Female";
-        String yearBlock = binding.registerYearBlock.getText().toString().trim();
-        String course = binding.radioGroupCourse.getCheckedRadioButtonId() == R.id.radio_bs_computer_science ? "BS-Computer Science" : "BS-Information Technology";
+        String studentIdValue = studentId.getText().toString().trim();
+        String surnameValue = surname.getText().toString().trim();
+        String firstNameValue = firstName.getText().toString().trim();
+        String middleInitialValue = middleInitial.getText().toString().trim();
+        String emailValue = email.getText().toString().trim();
+        String passwordValue = password.getText().toString().trim();
+        String yearBlockValue = yearBlock.getText().toString().trim();
 
-        // Input validation
-        if (studentId.isEmpty() || firstName.isEmpty() || surname.isEmpty() || middleInitial.isEmpty() || email.isEmpty() || password.isEmpty() || yearBlock.isEmpty() || course.isEmpty()) {
-            Toast.makeText(this, "Please fill all fields", Toast.LENGTH_SHORT).show();
+        // Get selected gender
+        String genderValue = getSelectedRadioButtonText(genderGroup);
+        // Get selected course
+        String courseValue = getSelectedRadioButtonText(courseGroup);
+
+        // Validate input fields
+        if (TextUtils.isEmpty(studentIdValue) || TextUtils.isEmpty(surnameValue) ||
+                TextUtils.isEmpty(firstNameValue) || TextUtils.isEmpty(emailValue) ||
+                TextUtils.isEmpty(passwordValue) || TextUtils.isEmpty(yearBlockValue) ||
+                TextUtils.isEmpty(genderValue) || TextUtils.isEmpty(courseValue)) {
+            Toast.makeText(this, "Please fill in all required fields", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // Firebase Authentication
-        progressBar.setVisibility(View.VISIBLE); // Show progress
-        mAuth.createUserWithEmailAndPassword(email, password)
+        // Register student in Firebase Authentication
+        auth.createUserWithEmailAndPassword(emailValue, passwordValue)
                 .addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
-                        FirebaseUser user = mAuth.getCurrentUser();
-                        // Create a new Student object
-                        Student newStudent = new Student(studentId, firstName, surname, middleInitial, email, gender, yearBlock, course);
-
-                        // Save user data to Firestore with studentId as document ID
-                        firestore.collection("students").document(studentId).set(newStudent)
-                                .addOnCompleteListener(saveTask -> {
-                                    progressBar.setVisibility(View.GONE); // Hide progress
-                                    if (saveTask.isSuccessful()) {
-                                        Toast.makeText(this, "Registration Successful!", Toast.LENGTH_SHORT).show();
-                                        startActivity(new Intent(this, LoginActivity.class));
-                                        finish();
-                                    } else {
-                                        Toast.makeText(this, "Failed to save user data: " + (saveTask.getException() != null ? saveTask.getException().getMessage() : "Unknown error"), Toast.LENGTH_SHORT).show();
-                                    }
-                                });
+                        saveStudentData(studentIdValue, surnameValue, firstNameValue, middleInitialValue,
+                                emailValue, genderValue, courseValue, yearBlockValue);
                     } else {
-                        progressBar.setVisibility(View.GONE); // Hide progress
-                        Toast.makeText(this, "Registration failed: " + (task.getException() != null ? task.getException().getMessage() : "Unknown error"), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(StudentRegistrationActivity.this,
+                                "Registration failed: " + task.getException().getMessage(),
+                                Toast.LENGTH_SHORT).show();
                     }
                 });
+    }
+
+    private String getSelectedRadioButtonText(RadioGroup radioGroup) {
+        int selectedId = radioGroup.getCheckedRadioButtonId();
+        RadioButton selectedButton = findViewById(selectedId);
+        return selectedButton != null ? selectedButton.getText().toString() : "";
+    }
+
+    private void saveStudentData(String studentId, String surname, String firstName, String middleInitial,
+                                 String email, String gender, String course, String yearBlock) {
+        HashMap<String, Object> studentData = new HashMap<>();
+        studentData.put("studentId", studentId);
+        studentData.put("surname", surname);
+        studentData.put("firstName", firstName);
+        studentData.put("middleInitial", middleInitial);
+        studentData.put("email", email);
+        studentData.put("gender", gender);
+        studentData.put("course", course);
+        studentData.put("yearBlock", yearBlock);
+
+        DocumentReference studentRef = db.collection("students").document(studentId);
+        studentRef.set(studentData)
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(StudentRegistrationActivity.this, "Student registered successfully", Toast.LENGTH_SHORT).show();
+                    navigateToStudentHomeFragment();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(StudentRegistrationActivity.this, "Error creating user profile: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+    }
+
+    private void navigateToStudentHomeFragment() {
+        // Replace the current activity's content with the Student Home Fragment
+        StudentHomeFragment studentHomeFragment = new StudentHomeFragment();
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.fragment_container, studentHomeFragment) // Ensure this ID matches your container ID
+                .addToBackStack(null) // Optional: Add to back stack
+                .commit();
     }
 }

@@ -1,47 +1,59 @@
 package com.catignascabela.dodapplication;
 
-import android.os.Bundle;
+import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.EditText;
+import android.widget.ArrayAdapter;
+import android.widget.ListView;
+import android.widget.TextView;
+
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.DialogFragment;
 
-public class ViolationDialog extends DialogFragment {
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
-    private Student student;
-    private OnViolationAddedListener listener;
+public class ViolationDialog {
 
-    public interface OnViolationAddedListener {
-        void onViolationAdded(Student student, String violation, String punishment);
-    }
+    public static void showViolationDialog(@NonNull Context context, String[] violations, ViolationSelectionListener listener) {
+        // Inflate the custom layout
+        LayoutInflater inflater = LayoutInflater.from(context);
+        View dialogView = inflater.inflate(R.layout.dialog_violation, null);
 
-    public ViolationDialog(Student student, OnViolationAddedListener listener) {
-        this.student = student;
-        this.listener = listener;
-    }
+        // Get references to the ListView and title TextView
+        ListView violationListView = dialogView.findViewById(R.id.violation_list);
+        TextView dialogTitle = dialogView.findViewById(R.id.dialog_title);
+        dialogTitle.setText("Select Violation");
 
-    @Nullable
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.dialog_violation, container, false);
+        // Create an ArrayAdapter for the ListView
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(context, android.R.layout.simple_list_item_1, violations);
+        violationListView.setAdapter(adapter);
 
-        EditText violationInput = view.findViewById(R.id.violation_input);
-        EditText punishmentInput = view.findViewById(R.id.punishment_input);
-        Button addButton = view.findViewById(R.id.add_violation_button);
+        // Create the dialog
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(context);
+        builder.setView(dialogView);
 
-        addButton.setOnClickListener(v -> {
-            String violation = violationInput.getText().toString();
-            String punishment = punishmentInput.getText().toString();
+        // Set up the dialog actions
+        builder.setNegativeButton("Cancel", null);
 
-            listener.onViolationAdded(student, violation, punishment);
-            dismiss(); // Close the dialog
+        // Show the dialog
+        builder.setOnDismissListener(dialog -> { /* Handle dismiss if needed */ });
+        // Explicitly declare the type of the dialog variable
+        androidx.appcompat.app.AlertDialog dialog = builder.create();
+        dialog.show();
+
+        // Set up item click listener for the ListView
+        violationListView.setOnItemClickListener((parent, view, position, id) -> {
+            String selectedViolation = violations[position];
+
+            // Add timestamp to the violation
+            long timestamp = System.currentTimeMillis(); // Get current time in milliseconds
+
+            // Notify the listener with the selected violation and timestamp
+            listener.onViolationSelected(selectedViolation, timestamp); // Pass both violation and timestamp
+            dialog.dismiss(); // Dismiss the dialog when an item is selected
         });
+    }
 
-        return view;
+    public interface ViolationSelectionListener {
+        void onViolationSelected(String violation, long timestamp); // Add timestamp as an argument
     }
 }

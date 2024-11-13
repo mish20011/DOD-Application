@@ -15,14 +15,13 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.ListenerRegistration;
+import com.google.firebase.firestore.Query;
 
 public class StudentHomeFragment extends Fragment {
 
     private FragmentHomeStudentBinding binding;
     private FirebaseFirestore firestore;
     private FirebaseAuth mAuth;
-    private ListenerRegistration listenerRegistration;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -30,9 +29,9 @@ public class StudentHomeFragment extends Fragment {
 
         // Initialize Firebase Authentication and Firestore
         mAuth = FirebaseAuth.getInstance();
-        firestore = FirebaseFirestore.getInstance(); // Initialize Firestore
+        firestore = FirebaseFirestore.getInstance();
 
-        // Fetch user data from Firestore
+        // Fetch student data based on their student ID
         fetchStudentData();
 
         return binding.getRoot();
@@ -42,47 +41,67 @@ public class StudentHomeFragment extends Fragment {
         FirebaseUser currentUser = mAuth.getCurrentUser();
 
         if (currentUser != null) {
-            String studentId = currentUser.getUid(); // Get the current user's ID
+            String userId = currentUser.getUid();
 
-            // Reference to the student's document in Firestore
-            listenerRegistration = firestore.collection("students").document(studentId)
-                    .addSnapshotListener((documentSnapshot, e) -> {
-                        if (e != null) {
-                            Log.e("StudentHomeFragment", "Listen failed.", e);
-                            return;
-                        }
+            firestore.collection("students").document(userId)
+                    .get()
+                    .addOnCompleteListener(task -> {
+                        if (task.isSuccessful()) {
+                            DocumentSnapshot studentSnapshot = task.getResult();
+                            if (studentSnapshot != null && studentSnapshot.exists()) {
+                                Student student = studentSnapshot.toObject(Student.class);
 
-                        if (documentSnapshot != null && documentSnapshot.exists()) {
-                            Student student = documentSnapshot.toObject(Student.class);
+                                if (student != null) {
+                                    // Populate the UI with student details
+                                    binding.studentIdTextView.setText("ID: " + student.getUid());
+                                    binding.genderTextView.setText("Gender: " + student.getGender());
+                                    binding.collegeYearTextView.setText("Year/Block: " + student.getYearBlock());
+                                    binding.courseTextView.setText("Course: " + student.getCourse());
+                                    binding.fullNameTextView.setText("Full Name: " + student.getFullName());
 
-                            if (student != null) {
-                                // Set the student details in the TextViews
-                                binding.studentIdTextView.setText("ID: " + student.getStudentId());
-                                binding.genderTextView.setText("Gender: " + student.getGender());
-                                binding.collegeYearTextView.setText("Year: " + student.getYearBlock());
-                                binding.courseTextView.setText("Course: " + student.getCourse());
-                                binding.fullNameTextView.setText("Full Name: " + student.getFullName());
-
-                                // Debugging log to verify student data retrieval
-                                Log.d("StudentHomeFragment", "Student Data Retrieved: " + student);
+                                    // Fetch the student’s violation data
+                                    fetchStudentViolations(userId);
+                                }
                             } else {
-                                Log.d("StudentHomeFragment", "Student data is null.");
+                                Log.e("StudentHomeFragment", "No student data found for user ID: " + userId);
                             }
                         } else {
-                            Log.d("StudentHomeFragment", "No data found for user ID: " + studentId);
+                            Log.e("StudentHomeFragment", "Failed to fetch student data.", task.getException());
                         }
                     });
         } else {
-            Log.d("StudentHomeFragment", "No current user found.");
+            Log.e("StudentHomeFragment", "No authenticated user found.");
         }
     }
 
-    @Override
-    public void onStop() {
-        super.onStop();
-        // Remove listener to avoid memory leaks
-        if (listenerRegistration != null) {
-            listenerRegistration.remove();
-        }
+    private void fetchStudentViolations(String studentId) {
+        Log.d("StudentHomeFragment", "Checking violations for student ID: " + studentId);
+
+        firestore.collection("violations")
+                .document(studentId)
+                .collection("violationRecords")
+                .orderBy("timestamp", Query.Direction.DESCENDING)
+                .limit(1)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful() && !task.getResult().isEmpty()) {
+                        DocumentSnapshot latestViolation = task.getResult().getDocuments().get(0);
+                        String description = latestViolation.getString("description");
+                        String punishment = latestViolation.getString("punishment");
+
+                        if (description != null && punishment != null) {
+                            // Format violation text
+                            binding.violationStatusTextView.setText(
+                                    "Violation type: " + description + " - " + punishment
+                            );
+                        } else {
+                            Log.e("StudentHomeFragment", "Violation details are incomplete.");
+                        }
+                    } else {
+                        Log.d("StudentHomeFragment", "No violations found for student.");
+                        binding.violationStatusTextView.setText("You are clear of violations!");
+                    }
+                })
+                .addOnFailureListener(e -> Log.e("StudentHomeFragment", "Error fetching violations.", e));
     }
 }
